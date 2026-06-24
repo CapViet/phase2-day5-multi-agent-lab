@@ -16,11 +16,18 @@ class ResearchState(BaseModel):
     request: ResearchQuery
     iteration: int = 0
     route_history: list[str] = Field(default_factory=list)
+    # Next worker chosen by the supervisor; "done" means the workflow may stop.
+    next_action: str | None = None
 
     sources: list[SourceDocument] = Field(default_factory=list)
     research_notes: str | None = None
     analysis_notes: str | None = None
     final_answer: str | None = None
+
+    # Aggregated token/cost accounting across all agent LLM calls.
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_cost_usd: float = 0.0
 
     agent_results: list[AgentResult] = Field(default_factory=list)
     trace: list[dict[str, Any]] = Field(default_factory=list)
@@ -32,3 +39,15 @@ class ResearchState(BaseModel):
 
     def add_trace_event(self, name: str, payload: dict[str, Any]) -> None:
         self.trace.append({"name": name, "payload": payload})
+
+    def add_agent_result(self, result: AgentResult) -> None:
+        """Store an agent's output and roll up its token/cost usage."""
+
+        self.agent_results.append(result)
+        usage = result.metadata.get("usage", {})
+        self.total_input_tokens += int(usage.get("input_tokens") or 0)
+        self.total_output_tokens += int(usage.get("output_tokens") or 0)
+        self.total_cost_usd += float(usage.get("cost_usd") or 0.0)
+
+    def record_error(self, message: str) -> None:
+        self.errors.append(message)

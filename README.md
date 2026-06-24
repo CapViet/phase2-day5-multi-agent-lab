@@ -59,19 +59,35 @@ Trace + Benchmark Report
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
-pip install -e "[dev]"
+pip install -e ".[dev,llm]"
 cp .env.example .env
 ```
 
-### 2. Cấu hình API keys
+### 2. Chọn LLM backend (switchable)
 
-Mở `.env` và điền key cần thiết.
+Hệ thống chạy được **ngay cả khi không có API key** nhờ offline mock deterministic. Chọn backend qua `LLM_PROVIDER`:
+
+| `LLM_PROVIDER` | Dùng khi | Model switch bằng |
+|---|---|---|
+| `auto` (default) | Tự chọn: OpenAI nếu có key, else Ollama local nếu chạy, else mock | — |
+| `openai` | Có `OPENAI_API_KEY` | `OPENAI_MODEL` |
+| `ollama` | Có Ollama chạy local (`ollama serve`) | `OLLAMA_MODEL` (vd `llama3.1`, `qwen2.5:3b`) |
+| `mock` | Không cần key/mạng (CI, test) | — |
+
+Ví dụ chạy bằng model local khác chỉ cần đổi 1 biến:
 
 ```bash
-OPENAI_API_KEY=...
-# optional
-LANGSMITH_API_KEY=...
-TAVILY_API_KEY=...
+export LLM_PROVIDER=ollama
+export OLLAMA_MODEL=qwen2.5:3b   # đổi model ở đây
+```
+
+`.env` mẫu:
+
+```bash
+LLM_PROVIDER=auto
+OPENAI_API_KEY=...          # optional
+OLLAMA_MODEL=llama3.1       # optional, cho Ollama
+TAVILY_API_KEY=...          # optional, nếu không có sẽ dùng mock search
 ```
 
 ### 3. Chạy smoke test
@@ -81,23 +97,33 @@ make test
 python -m multi_agent_research_lab.cli --help
 ```
 
-### 4. Chạy baseline skeleton
+### 4. Chạy single-agent baseline
 
 ```bash
 python -m multi_agent_research_lab.cli baseline \
   --query "Research GraphRAG state-of-the-art and write a 500-word summary"
 ```
 
-Lệnh này chỉ chạy khung baseline tối giản. Học viên cần tự triển khai logic LLM thực tế trong `src/multi_agent_research_lab/services/llm_client.py`.
+Một agent làm toàn bộ trong một LLM call (control để benchmark).
 
-### 5. Chạy multi-agent skeleton
+### 5. Chạy multi-agent workflow
 
 ```bash
 python -m multi_agent_research_lab.cli multi-agent \
-  --query "Research GraphRAG state-of-the-art and write a 500-word summary"
+  --query "Research GraphRAG state-of-the-art and write a 500-word summary" \
+  --critic --trace-out reports/trace.json
 ```
 
-Mặc định lệnh sẽ báo các `TODO` cần làm. Đây là chủ đích của starter repo.
+Supervisor điều phối Researcher → Analyst → Writer (→ Critic nếu `--critic`), in route, token/cost, và export JSON trace.
+
+### 6. Benchmark single vs multi-agent
+
+```bash
+python -m multi_agent_research_lab.cli benchmark \
+  --query "Summarize production guardrails for LLM agents"
+```
+
+Đo latency, cost, citation coverage, failure rate cho cả hai cách và ghi `reports/benchmark_report.md`. Không truyền `--query` sẽ chạy bộ query mặc định.
 
 ## Milestones trong 2 giờ lab
 
