@@ -17,7 +17,7 @@ from multi_agent_research_lab.evaluation.benchmark import run_benchmark
 from multi_agent_research_lab.evaluation.report import render_markdown_report
 from multi_agent_research_lab.graph.workflow import MultiAgentWorkflow
 from multi_agent_research_lab.observability.logging import configure_logging
-from multi_agent_research_lab.observability.tracing import export_trace
+from multi_agent_research_lab.observability.tracing import export_trace, push_trace_to_langsmith
 from multi_agent_research_lab.services.storage import LocalArtifactStore
 
 app = typer.Typer(help="Multi-Agent Research Lab CLI")
@@ -57,9 +57,14 @@ def multi_agent(
     trace_out: Annotated[
         str | None, typer.Option("--trace-out", help="Write JSON trace to this path")
     ] = None,
+    langsmith: Annotated[
+        bool,
+        typer.Option("--langsmith", help="Push the run to LangSmith and print a shareable link"),
+    ] = False,
 ) -> None:
     """Run the multi-agent workflow."""
 
+    settings = get_settings()
     _init()
     state = _run_multi(query, use_critic=critic)
     console.print(Panel.fit(state.final_answer or "(no answer)", title="Multi-Agent Answer"))
@@ -73,6 +78,21 @@ def multi_agent(
     if trace_out:
         path = export_trace(state.trace, trace_out)
         console.print(f"[green]Trace written to {path}[/green]")
+    if langsmith:
+        url = push_trace_to_langsmith(
+            state.trace,
+            query=query,
+            answer=state.final_answer or "",
+            settings=settings,
+        )
+        if url:
+            path = LocalArtifactStore().write_text("trace_link.txt", url + "\n")
+            console.print(f"[green]LangSmith trace: {url}[/green]")
+            console.print(f"[dim]Saved link to {path}[/dim]")
+        else:
+            console.print(
+                "[yellow]LangSmith not configured (set LANGSMITH_API_KEY in .env).[/yellow]"
+            )
 
 
 @app.command()

@@ -1,0 +1,107 @@
+[
+  {
+    "name": "supervisor.route",
+    "payload": {
+      "next": "researcher",
+      "iteration": 1,
+      "has_research": false,
+      "has_analysis": false,
+      "has_answer": false
+    }
+  },
+  {
+    "name": "researcher.llm",
+    "payload": {
+      "provider": "ollama",
+      "model": "qwen2.5:3b",
+      "input_tokens": 299,
+      "output_tokens": 161,
+      "cost_usd": 0.0
+    }
+  },
+  {
+    "name": "researcher.done",
+    "payload": {
+      "n_sources": 5
+    }
+  },
+  {
+    "name": "supervisor.route",
+    "payload": {
+      "next": "analyst",
+      "iteration": 2,
+      "has_research": true,
+      "has_analysis": false,
+      "has_answer": false
+    }
+  },
+  {
+    "name": "analyst.llm",
+    "payload": {
+      "provider": "ollama",
+      "model": "qwen2.5:3b",
+      "input_tokens": 257,
+      "output_tokens": 444,
+      "cost_usd": 0.0
+    }
+  },
+  {
+    "name": "analyst.done",
+    "payload": {
+      "chars": 2501
+    }
+  },
+  {
+    "name": "supervisor.route",
+    "payload": {
+      "next": "writer",
+      "iteration": 3,
+      "has_research": true,
+      "has_analysis": true,
+      "has_answer": false
+    }
+  },
+  {
+    "name": "writer.llm",
+    "payload": {
+      "provider": "ollama",
+      "model": "qwen2.5:3b",
+      "input_tokens": 698,
+      "output_tokens": 330,
+      "cost_usd": 0.0
+    }
+  },
+  {
+    "name": "writer.done",
+    "payload": {
+      "chars": 1786
+    }
+  },
+  {
+    "name": "critic.llm",
+    "payload": {
+      "provider": "ollama",
+      "model": "qwen2.5:3b",
+      "input_tokens": 403,
+      "output_tokens": 51,
+      "cost_usd": 0.0
+    }
+  },
+  {
+    "name": "critic.done",
+    "payload": {
+      "citation_coverage": 1.0,
+      "n_sources": 5
+    }
+  },
+  {
+    "name": "supervisor.route",
+    "payload": {
+      "next": "done",
+      "iteration": 4,
+      "has_research": true,
+      "has_analysis": true,
+      "has_answer": true
+    }
+  }
+]
